@@ -1,8 +1,8 @@
 /* -*- mode:C++ -*- */
 /**
   CastOps.h Primitive casting and ALU operations
-  Copyright (C) 2014-2015 The Regents of the University of New Mexico.
-  Copyright (C) 2014-2015 Ackleyshack LLC.
+  Copyright (C) 2014-2016 The Regents of the University of New Mexico.
+  Copyright (C) 2014-2016 Ackleyshack LLC.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,7 @@
   \file CastOps.h Primitive casting and ALU operations
   \author Elenas S. Ackley.
   \author David H. Ackley.
-  \date (C) 2014-2015 All rights reserved.
+  \date (C) 2014-2016 All rights reserved.
   \lgpl
  */
 #ifndef CASTOPS_H
@@ -1493,6 +1493,107 @@ namespace MFM {
     u64 binvala = _Unary64ToCu64(vala, bitwidth);
     u64 binvalb = _Unary64ToCu64(valb, bitwidth);
     return _CboolToBool64((binvala >= binvalb), BITS_PER_BOOL);
+  }
+
+  //CompOps on STRING
+  inline u32 _BinOpCompareEqEqString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala == cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareEqEqString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala == cvalb), BITS_PER_BOOL);
+  }
+
+  inline u32 _BinOpCompareNotEqString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala != cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareNotEqString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala != cvalb), BITS_PER_BOOL);
+  }
+
+  inline u32 _BinOpCompareLessThanString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala < cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareLessThanString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala < cvalb), BITS_PER_BOOL);
+  }
+
+  inline u32 _BinOpCompareGreaterThanString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala > cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareGreaterThanString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala > cvalb), BITS_PER_BOOL);
+  }
+
+  inline u32 _BinOpCompareLessEqualString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala <= cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareLessEqualString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala <= cvalb), BITS_PER_BOOL);
+  }
+
+  inline u32 _BinOpCompareGreaterEqualString32(u32 vala, u32 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u32 cvala = _Unsigned32ToCu32(vala, bitwidth);
+    u32	cvalb = _Unsigned32ToCu32(valb, bitwidth);
+    return _CboolToBool32((cvala >= cvalb), BITS_PER_BOOL);
+  }
+
+  inline u64 _BinOpCompareGreaterEqualString64(u64 vala, u64 valb, u32 bitwidth)
+  {
+    //need to compare the underlying strings, not just their indexes..TODO
+    return 0;
+    u64 cvala = _Unsigned64ToCu64(vala, bitwidth);
+    u64	cvalb = _Unsigned64ToCu64(valb, bitwidth);
+    return _CboolToBool64((cvala >= cvalb), BITS_PER_BOOL);
   }
 
   //SHIFT OPS
