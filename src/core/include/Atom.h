@@ -75,6 +75,9 @@ namespace MFM
 
      ATOM_EMPTY_TYPE - The type number corresponding to the Empty atom
      in this category.
+
+     ATOM_UNDEFINED_TYPE - The type number corresponding to the
+     undefined/illegal/subatomic atom in this category.
   */
   template <class AC>
   class Atom
@@ -198,6 +201,16 @@ namespace MFM
     void SetEmpty()
     {
       return static_cast<T*>(this)->SetEmptyImpl();
+    }
+
+    /**
+     * Sets this Atom to be an undefined atom, which will fail if its type is examined.
+     *
+     * @remarks This delegates to SetUndefinedImpl in the subclass of Atom.
+     */
+    void SetUndefined()
+    {
+      return static_cast<T*>(this)->SetUndefinedImpl();
     }
 
     /**

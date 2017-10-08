@@ -45,13 +45,6 @@ namespace MFM
     typedef typename GC::EVENT_CONFIG EC;
 
     OurDriver & m_driver;
-#if 0
-    double m_AEPS;
-    double m_AER;
-    double m_overheadPercent;
-    u32 m_aepsPerFrame;
-    u32 m_currentAEPSPerEpoch;
-#endif
 
   public:
     OurDriver & GetDriver() { return m_driver; }
@@ -75,6 +68,7 @@ namespace MFM
       SetRenderPoint(SPoint(100000, 0));
       SetForeground(Drawing::WHITE);
       SetBackground(Drawing::DARK_PURPLE);
+      SetFont(FONT_ASSET_ELEMENT);
     }
 
     bool LoadDetails(const char * key, LineCountingByteSource & source)

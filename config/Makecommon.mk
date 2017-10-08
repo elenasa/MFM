@@ -42,6 +42,8 @@ override DEFINES+=-DMFM_VERSION_MAJOR=$(MFM_VERSION_MAJOR)
 override DEFINES+=-DMFM_VERSION_MINOR=$(MFM_VERSION_MINOR)
 override DEFINES+=-DMFM_VERSION_REV=$(MFM_VERSION_REV)
 override DEFINES+=-DMFM_TREE_VERSION="$(MFM_TREE_VERSION)"
+override DEFINES+=-DDEBIAN_PACKAGE_NAME="$(DEBIAN_PACKAGE_NAME)"
+override DEFINES+=-DMAGIC_DEBIAN_PACKAGE_VERSION="$(MAGIC_DEBIAN_PACKAGE_VERSION)"
 
 # (AAAaand, we are now adopting a preemptive first strike policy!  See
 # 'EXTRA DEFINES', above.  Drop the override bomb!)
@@ -51,7 +53,14 @@ override LIBS+=$(EXTERNAL_LIBS)
 
 ALLDEP+=$(wildcard $(BASEDIR)/config/*.mk) Makefile   # If config or local makefile changes, nuke it from orbit
 
+IS_NATIVE=no
 ifeq ($(MFM_TARGET),linux)
+  IS_NATIVE:=yes
+endif
+ifeq ($(MFM_TARGET),tile)
+  IS_NATIVE:=yes
+endif
+ifeq ($(IS_NATIVE),yes)
   CFLAGS+=$(NATIVE_GCC_CFLAGS)
   CPPFLAGS+=$(NATIVE_GCC_CPPFLAGS)
   LDFLAGS+=$(NATIVE_GCC_LDFLAGS)

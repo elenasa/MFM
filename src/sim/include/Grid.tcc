@@ -185,9 +185,6 @@ namespace MFM {
   template <class GC>
   void Grid<GC>::SetGridRunning(bool running)
   {
-    //    /* Notify the transceivers */
-    //    m_gtDriver.SetState(running ? GTDriver::ADVANCING : GTDriver::PAUSED);
-
     /* Notify the Tiles */
     for (m_rgi.ShuffleOrReset(m_random); m_rgi.HasNext(); )
     {
@@ -345,6 +342,30 @@ namespace MFM {
     //
     site.Sense(touch);
   }
+
+
+  template <class GC>
+  bool Grid<GC>::RunEventIfPausedAt(const SPoint & gridCoord)
+  {
+    SPoint tileInGrid, siteInTile;
+    if (!MapGridToTile(gridCoord, tileInGrid, siteInTile))
+    {
+      return false;  // ain't no touch
+    }
+
+    Tile<EC> & owner = GetTile(tileInGrid);
+
+    if (owner.IsActive()) return false;  // Not paused?  Is this how we check?
+
+    if (owner.RegionIn(siteInTile) != owner.REGION_HIDDEN)
+      return false;           // Cache involvment not allowed
+
+    EventWindow<EC> & ew = owner.GetEventWindow();
+    bool attempt = ew.TryForceEventAt(siteInTile);
+
+    return attempt;
+  }
+
 
   template <class GC>
   bool Grid<GC>::MapGridToTile(const SPoint & siteInGrid, SPoint & tileInGrid, SPoint & siteInTile) const
@@ -600,6 +621,16 @@ namespace MFM {
   }
 
   template <class GC>
+  u64 Grid<GC>::GetTotalSitesAccessed() const
+  {
+    u64 total = 0;
+    for (const_iterator_type i = begin(); i != end(); ++i)
+      total += i->GetSitesAccessed();
+
+    return total;
+  }
+
+  template <class GC>
   void Grid<GC>::WriteEPSImage(ByteSink & outstrm) const
   {
     u64 max = 0;
@@ -677,6 +708,14 @@ namespace MFM {
       total += i->GetAtomCount(atomType);
 
     return total;
+  }
+
+  template <class GC>
+  s32 Grid<GC>::GetAtomCountFromSymbol(const u8 * symbol) const
+  {
+    const Element<EC> * elt = this->LookupElementFromSymbol(symbol);
+    if (!elt) return -1;
+    return (s32) this->GetAtomCount(elt->GetType());
   }
 
   template <class GC>

@@ -41,6 +41,7 @@
 namespace MFM
 {
 
+  /** Sorter element from the Demon Horde Sort (C++ implementation) */
   template <class EC>
   class Element_Sorter : public Element<EC>
   {
@@ -141,7 +142,7 @@ namespace MFM
       }
     }
 
-    virtual u32 GetAtomColor(const T& atom, u32 selector) const
+    virtual u32 GetAtomColor(const ElementTable<EC> & et, const UlamClassRegistry<EC> & ucr, const T& atom, u32 selector) const
     {
       switch (selector)
       {

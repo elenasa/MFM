@@ -31,6 +31,9 @@
 #include "itype.h"
 #include "math.h"
 
+#define XSTR_MACRO(s) STR_MACRO(s)
+#define STR_MACRO(s) #s
+
 namespace MFM {
 
 #define MARK_USED(X) ((void)(&(X)))
@@ -119,7 +122,7 @@ namespace MFM {
   }
 
   inline u64 _ShiftFromBitNumber64(u64 value, u32 bitpos) {
-    return value>>bitpos;
+    return (u64) (value>>bitpos);
   }
 
   inline u32 _GetMask32(u32 bitpos, u32 bitwidth) {
@@ -228,6 +231,14 @@ namespace MFM {
   inline T CLAMP(T min, T max, T val)
   {
     return val < min ? min : (val > max ? max : val);
+  }
+
+  template <class T>
+  inline void SWAP(T& v1, T& v2)
+  {
+    T t = v1;
+    v1 = v2;
+    v2 = t;
   }
 
   template <class T>
@@ -470,6 +481,13 @@ namespace MFM {
   {
     return InterpolateColors(0xffffffff, color, percentToBrighten);
   }
+
+  /**
+     Return a pointer to the first byte of str following the first
+     occurrence of the string "%20" inside str, if it exists.  If str
+     is NULL, or "%20" is not found inside str, return str.
+  */
+  const char * StripThroughHexSpaceIfExists(const char * str) ;
 
 }
 

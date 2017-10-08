@@ -1,6 +1,6 @@
 /*                                              -*- mode:C++ -*-
   EventWindow.h Main MFM event component
-  Copyright (C) 2014 The Regents of the University of New Mexico.  All rights reserved.
+  Copyright (C) 2014-2017 The Regents of the University of New Mexico.  All rights reserved.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,8 @@
   \file EventWindow.h Main MFM event component
   \author Trent R. Small.
   \author David H. Ackley.
-  \date (C) 2014 All rights reserved.
+  \author Elena S. Ackley.
+  \date (C) 2014-2017 All rights reserved.
   \lgpl
  */
 #ifndef EVENTWINDOW_H
@@ -30,16 +31,19 @@
 
 #include "Point.h"
 #include "itype.h"
-#include "CacheProcessor.h"
 #include "MDist.h"  /* for EVENT_WINDOW_SITES */
 #include "PSym.h"   /* For PointSymmetry, Map */
 #include "Site.h"
 #include "Base.h"
+#include "ByteSink.h"
+#include "BitStorage.h"
 
 namespace MFM
 {
 
   template <class EC> class Tile; // FORWARD
+  template <class EC> class CacheProcessor; // FORWARD
+  template <class EC> class AtomBitStorage; // FORWARD
 
   /**
      An EventWindow provides access for an Element to a selected
@@ -93,12 +97,18 @@ namespace MFM
     enum { R = EC::EVENT_WINDOW_RADIUS };
   public:
     enum { SITE_COUNT = EVENT_WINDOW_SITES(R) };
+
   private:
 
     Tile<EC> & m_tile;
 
+    u32 m_eventWindowBoundary;
+    u32 m_boundedSiteCount;
+    const Element<EC> * m_element;
+
     u64 m_eventWindowsAttempted;
     u64 m_eventWindowsExecuted;
+    u64 m_eventWindowSitesAccessed; // Sum of within-boundary sites
 
     void RecordEventAtTileCoord(const SPoint tcoord) ;
 
@@ -108,7 +118,7 @@ namespace MFM
      * Elements, the current symmetry must be applied to coordinates
      * before accessing the buffer.
      */
-    T m_atomBuffer[SITE_COUNT];
+    AtomBitStorage<EC>  m_atomBuffer[SITE_COUNT];
     bool m_isLiveSite[SITE_COUNT];
 
     Base<AC> m_centerBase;
@@ -123,7 +133,7 @@ namespace MFM
 
     PointSymmetry m_sym;
 
-    bool AcquireAllLocks(const SPoint& centerSite) ;
+    bool AcquireAllLocks(const SPoint& centerSite, const u32 eventWindowBoundary) ;
 
     bool AcquireRegionLocks() ;
 
@@ -179,6 +189,8 @@ namespace MFM
 
     void ExecuteEvent() ;
 
+    void PrintEventSite(ByteSink & bs) ;
+
     void ExecuteBehavior() ;
 
     void InitiateCommunications() ;
@@ -221,6 +233,8 @@ namespace MFM
 
 
   public:
+    bool TryForceEventAt(const SPoint & center) ;
+
     bool TryEventAtForTesting(const SPoint & center)
     {
       return TryEventAt(center);
@@ -258,6 +272,11 @@ namespace MFM
       return m_eventWindowsExecuted;
     }
 
+    u64 GetSitesAccessed() const
+    {
+      return m_eventWindowSitesAccessed;
+    }
+
     void SetEventWindowsAttempted(u64 attempts)
     {
       m_eventWindowsAttempted = attempts;
@@ -289,8 +308,20 @@ namespace MFM
     bool InWindow(const SPoint & offset) const
     {
       // Ignores m_sym since point symmetries can't change this answer
-      return offset.GetManhattanLength() <= R;
+      return offset.GetManhattanLength() < m_eventWindowBoundary;
     }
+
+    u32 GetBoundary() const
+    {
+      return m_eventWindowBoundary;
+    }
+
+    u32 GetBoundedSiteCount() const
+    {
+      return m_boundedSiteCount;
+    }
+
+    void SetBoundary(u32 boundary) ;
 
     /**
        Does any I/O that's appropriate to the situation and possible.
@@ -485,6 +516,24 @@ namespace MFM
     }
 
     /**
+     * Get a modifiable reference to an atom bit storage by site
+     * number, after mapping siteNumber through the current symmetry
+     */
+    AtomBitStorage<EC>& GetAtomBitStorage(u32 siteNumber)
+    {
+      return m_atomBuffer[MapIndexToIndexSymValid(siteNumber)];
+    }
+
+    /**
+     * Get a modifiable reference to an atom bit storage which resides
+     * in the center of this EventWindow
+     */
+    AtomBitStorage<EC>& GetCenterAtomBitStorage()
+    {
+      return m_atomBuffer[0];
+    }
+
+    /**
      * Gets the immutable Atom which resides in the center of this
      * EventWindow.  Same function as GetCenterAtomSym .
      *
@@ -494,43 +543,39 @@ namespace MFM
      */
     const T& GetCenterAtomDirect() const
     {
-      return m_atomBuffer[0];
+      return m_atomBuffer[0].GetAtom();
     }
 
     /**
      * Gets the immutable Atom which resides in the center of this
-     * EventWindow.  Same function as GetCenterAtomDirect .
+     * EventWindow.  Same function as GetCenterAtomDirect  (since
+     * symmetries don't affect the center atom).
      *
      * @returns The immutable Atom which resides in the center of this
      * EventWindow.
      */
     const T& GetCenterAtomSym() const
     {
-      return m_atomBuffer[0];
-    }
-
-    T& GetCenterAtomSym()
-    {
-      return m_atomBuffer[0];
+      return m_atomBuffer[0].GetAtom();
     }
 
     /**
-     * Get a copy of an atom by site number, without mapping
-     * siteNumber through the current symmetry
+     * Get a const reference of an atom by site number, without
+     * mapping siteNumber through the current symmetry
      */
-    T GetAtomDirect(u32 siteNumber) const
+    const T& GetAtomDirect(u32 siteNumber) const
     {
       MFM_API_ASSERT_ARG(siteNumber < SITE_COUNT);
-      return m_atomBuffer[siteNumber];
+      return m_atomBuffer[siteNumber].GetAtom();
     }
 
     /**
-     * Get a copy of an atom by site number, after mapping siteNumber
-     * through the current symmetry
+     * Get a const reference to an atom by site number, after mapping
+     * siteNumber through the current symmetry
      */
-    T GetAtomSym(u32 siteNumber) const
+    const T& GetAtomSym(u32 siteNumber) const
     {
-      return m_atomBuffer[MapIndexToIndexSymValid(siteNumber)];
+      return m_atomBuffer[MapIndexToIndexSymValid(siteNumber)].GetAtom();
     }
 
     /**
@@ -540,7 +585,7 @@ namespace MFM
     void SetAtomDirect(u32 siteNumber, const T & newAtom)
     {
       MFM_API_ASSERT_ARG(siteNumber < SITE_COUNT);
-      m_atomBuffer[siteNumber] = newAtom;
+      m_atomBuffer[siteNumber].WriteAtom(newAtom);
     }
 
     /**
@@ -549,7 +594,7 @@ namespace MFM
      */
     void SetAtomSym(u32 siteNumber, const T & newAtom)
     {
-      m_atomBuffer[MapIndexToIndexSymValid(siteNumber)] = newAtom;
+      m_atomBuffer[MapIndexToIndexSymValid(siteNumber)].WriteAtom(newAtom);
     }
 
     /**
@@ -561,7 +606,7 @@ namespace MFM
      */
     void SetCenterAtomDirect(const T& atom)
     {
-      m_atomBuffer[0] = atom;
+      m_atomBuffer[0].WriteAtom(atom);
     }
 
     /**
@@ -574,7 +619,7 @@ namespace MFM
      */
     void SetCenterAtomSym(const T& atom)
     {
-      m_atomBuffer[0] = atom;
+      m_atomBuffer[0].WriteAtom(atom);
     }
 
     /**
