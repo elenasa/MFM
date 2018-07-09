@@ -210,7 +210,7 @@ namespace MFM
     {
       m_selectMode = mode;
       m_bitField.Clear();
-      m_selectedOne(0, 0);
+      m_selectedOne.Set(0, 0);
     }
 
     void SetText(const char* text)
