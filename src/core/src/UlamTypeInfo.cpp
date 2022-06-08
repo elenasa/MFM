@@ -37,12 +37,12 @@ namespace MFM
       m_utic.PrintMangled(bs);
   }
 
-  void UlamTypeInfo::PrintPretty(ByteSink & bs) const
+  void UlamTypeInfo::PrintPretty(ByteSink & bs, bool minpunct) const
   {
-    bs.Printf("%s",GetPrettyPrefixFromCategory(m_category));
+    if (!minpunct) bs.Printf("%s",GetPrettyPrefixFromCategory(m_category));
 
-    if (IsPrimitive()) m_utip.PrintPretty(bs);
-    else if (IsClass()) m_utic.PrintPretty(bs);
+    if (IsPrimitive()) m_utip.PrintPretty(bs,minpunct);
+    else if (IsClass()) m_utic.PrintPretty(bs,minpunct);
     else FAIL(ILLEGAL_STATE);
   }
 
@@ -57,6 +57,8 @@ namespace MFM
     case 'v': type = VOID; break;
     case 'y': type = UNARY; break;
     case 's': type = STRING; break;
+    case 'a': type = ATOM; break;
+    case 'c': type = CONST_CLASS; break;
     default: return false;
     }
     result = type;
@@ -73,6 +75,8 @@ namespace MFM
     case VOID: return 'v';
     case UNARY: return 'y';
     case STRING: return 's';
+    case ATOM: return 'a';
+    case CONST_CLASS: return 'c';
     }
     FAIL(ILLEGAL_ARGUMENT);
   }
@@ -87,6 +91,8 @@ namespace MFM
     case VOID: return "Void";
     case UNARY: return "Unary";
     case STRING: return "String";
+    case ATOM: return "Atom";
+    case CONST_CLASS: FAIL(INCOMPLETE_CODE); //XXX or..???
     }
     FAIL(ILLEGAL_ARGUMENT);
   }
@@ -101,6 +107,8 @@ namespace MFM
     case VOID: return 0;
     case UNARY: return 32;
     case STRING: return 32;
+    case ATOM: return 96;
+    case CONST_CLASS: FAIL(INCOMPLETE_CODE); //XXX or..???
     }
     FAIL(ILLEGAL_ARGUMENT);
   }
@@ -130,7 +138,7 @@ namespace MFM
     bs.Printf("%D%D1%c", m_arrayLength, m_bitSize, CharFromPrimType(GetPrimType()));
   }
 
-  void UlamTypeInfoPrimitive::PrintPretty(ByteSink & bs) const
+  void UlamTypeInfoPrimitive::PrintPretty(ByteSink & bs,bool minpunct) const
   {
     bs.Printf("%s", NameFromPrimType(GetPrimType()));
 
@@ -176,6 +184,17 @@ namespace MFM
 	    uticp.m_stringValue.WriteByte((u8) chr);
 	  }
 	}
+      else if (uticp.m_parameterType.m_primType == UlamTypeInfoPrimitive::CONST_CLASS)
+        {
+	  u32 hexlen;
+	  if (!cbs.Scan(hexlen, Format::LEXHD, 0)) return false;
+
+	  for(u32 j = 0; j < hexlen; j++)
+	    {
+	      s32 ch = cbs.Read(); //throw away for now..
+	      if (ch < 0) return false;
+	    }
+        }
       else
 	{
 	  u32 arrayloop = uticp.m_parameterType.m_arrayLength;
@@ -263,24 +282,28 @@ namespace MFM
     }
   }
 
-  void UlamTypeInfoClass::PrintPretty(ByteSink & bs) const
+  void UlamTypeInfoClass::PrintPretty(ByteSink & bs,bool minpunct) const
   {
     m_name.AppendTo(bs);
 
     if (m_classParameterCount==0)
       return;
 
-    bs.Printf("(");
+    bs.Printf(minpunct?"<":"(");
+
     for (u32 i = 0; i < m_classParameterCount; ++i)
     {
-      if (i > 0) bs.Printf(",");
+      if (i > 0)
+        bs.Printf(minpunct?" ":",");
+
       if (i < MAX_CLASS_PARAMETERS)
       {
-        m_classParameters[i].m_parameterType.PrintPretty(bs);
+        //XXX COMPACTIFY TEMPLATES?
+        if (!minpunct) m_classParameters[i].m_parameterType.PrintPretty(bs, minpunct);
 
 	if(m_classParameters[i].m_parameterType.GetPrimType() == UlamTypeInfoPrimitive::STRING)
 	  {
-	    bs.Printf("=");
+            //XXX COMPACTIFY TEMPLATES?  bs.Printf("=");
 	    bs.PrintDoubleQuotedCStringWithLength(m_classParameters[i].m_stringValue.GetBuffer());
 	  }
 	else
@@ -289,7 +312,7 @@ namespace MFM
 	    if(arrayloop > MAX_CLASS_PARAMETER_ARRAY_LENGTH) FAIL(ILLEGAL_STATE);
 
 	    arrayloop = ((arrayloop == 0) ? 1 : arrayloop);
-	    bs.Printf("=");
+            //XXX COMPACTIFY TEMPLATES? bs.Printf("=");
 	    if(arrayloop > 1)
 	      bs.Printf("{"); //start of array values
 	    for(u32 j = 0; j < arrayloop; j++)
@@ -315,7 +338,7 @@ namespace MFM
       else
         bs.Printf("?");
     }
-    bs.Printf(")"); //end of parameters
+    bs.Printf(minpunct?">":")"); //end of parameters
   }
 
   u64 UlamTypeInfoPrimitive::GetExtremeOfScalarType(bool wantMax) const
